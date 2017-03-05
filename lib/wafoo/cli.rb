@@ -2,30 +2,42 @@
 
 require 'thor'
 require 'aws-sdk'
+require 'awsecrets'
 require 'diffy'
 require 'netaddr'
 
 module Wafoo
   class CLI < Thor
     default_command :version
+    class_option :profile
+    class_option :region
 
     desc 'version', 'version 情報を出力.'
     def version
       puts VERSION
     end
 
-    desc 'export', 'IPset を export する'
+    desc 'list', 'IPSet ID の一覧を取得する'
+    option :cloudfront, type: :boolean, desc: '対象が CloudFront の場合に指定.'
+    def list
+      puts 'listing...'
+      list_ipsets
+    end
+
+    desc 'export', '指定した IPSet ID の IPset を export する'
     # option :file, type: :string, aliases: '-f', desc: 'IPset 出力先を指定.'
     option :ip_set_id, type: :string, aliases: '-i', desc: 'IPset ID を指定.'
+    option :cloudfront, type: :boolean, desc: '対象が CloudFront の場合に指定.'
     def export
       puts 'export...'
       export_ipsets(options[:ip_set_id])
     end
 
-    desc 'apply', 'IPset を apply する'
+    desc 'apply', '指定した IPSet ID の IPset を apply する'
     # option :file, type: :string, aliases: '-f', desc: 'IPset 入力元を指定.'
     option :ip_set_id, type: :string, aliases: '-i', desc: 'IPset ID を指定.'
     option :dry_run, type: :boolean, aliases: '-d', desc: 'apply 前の試行.'
+    option :cloudfront, type: :boolean, desc: '対象が CloudFront の場合に指定.'
     def apply
       if options[:dry_run] then
         puts 'apply...(dry-run)'
@@ -38,7 +50,12 @@ module Wafoo
     private
 
     def waf
-      Aws::WAFRegional::Client.new(region: 'ap-northeast-1', profile: 'oreno-profile')
+      Awsecrets.load
+      unless options[:cloudfront] then
+        Aws::WAFRegional::Client.new(profile: options[:profile], region: options[:region])
+      else
+        Aws::WAF::Client.new(profile: options[:profile], region: options[:region])
+      end
     end
 
     def read_ipsets_from_api(ip_set_id)
@@ -63,6 +80,12 @@ module Wafoo
       end
 
       return ipsets.sort
+    end
+
+    def list_ipsets
+      waf.list_ip_sets.ip_sets.each do |ipset|
+        puts ipset.to_yaml
+      end
     end
 
     def export_ipsets(ip_set_id)

@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_dependency "thor"
   spec.add_dependency "aws-sdk"
+  spec.add_dependency "awsecrets"
   spec.add_dependency "diffy"
   spec.add_dependency "netaddr"
 
