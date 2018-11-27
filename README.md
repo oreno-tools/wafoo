@@ -25,6 +25,15 @@ Or install it yourself as:
 $ gem install wafoo
 ```
 
+## 準備
+
+とりあえずは, direnv と組み合わせて利用することを想定しており, AWS のクレデンシャル情報は .envrc に記載して下さい.
+
+```sh
+export AWS_PROFILE=your-profile
+export AWS_REGION=ap-northeast-1
+```
+
 ## Getting Started
 
 ### Step 1: Listing IPSets
