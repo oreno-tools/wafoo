@@ -22,5 +22,7 @@ module Wafoo
     def removed_print(message)
       "\e[31m" + message + "\e[0m"
     end
+
+    alias error_print removed_print
   end
 end

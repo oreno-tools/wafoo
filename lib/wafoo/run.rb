@@ -76,8 +76,10 @@ module Wafoo
           updates: ipsets
         )
         puts 'Apply Finished.'
+        exit 0
       rescue => ex
-        puts 'Apply Error ' + ex.message
+        puts error_print(ex.message)
+        exit 1
       end
     end
 
