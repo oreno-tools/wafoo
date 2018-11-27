@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ['inokappa']
   spec.email         = ['inokara at gmail.com']
 
-  spec.summary       = %q{AWS WAF is a small tool to manipulate IPSets.}
-  spec.description   = %q{AWS WAF is a small tool to manipulate IPSets.}
+  spec.summary       = %q{Small tool to manipulate AWS WAF IPSets.}
+  spec.description   = %q{Small tool to manipulate AWS WAF IPSets.}
   spec.homepage      = 'https://github.com/inokappa/wafoo'
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
