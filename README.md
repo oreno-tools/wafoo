@@ -2,7 +2,7 @@
 
 ## これなに
 
-* AWS WAF の IPSets をいじるコマンドラインツール
+* AWS WAF の IP Sets に登録されている IP リストを操作するツールです
 * ツッコミどころが満載です
 
 ## Install
