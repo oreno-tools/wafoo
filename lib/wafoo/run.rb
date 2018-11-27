@@ -57,29 +57,33 @@ module Wafoo
 
     def export_ipsets(ip_set_id)
       ipsets = read_ipsets_from_api(ip_set_id)
-      ipsets.sort.each { |ipset| puts ipset }
+      puts 'Exporting IP List...'
+      ipsets.sort.each { |ipset| puts info_print(ipset) }
       File.open(ip_set_id, 'w') do |f|
         ipsets.sort.each { |ipset| f.puts(ipset) }
       end
+      puts 'Exported to ' + added_print(ip_set_id)
     end
 
     def apply_ipsets(ipsets, ip_set_id)
       waf = @regional ? @waf_regional : @waf
+      puts 'Applying IP List...'
       change_token = waf.get_change_token.change_token
-      resp = waf.update_ip_set(
-        ip_set_id: ip_set_id,
-        change_token: change_token,
-        updates: ipsets
-      )
-    end
-
-    def split_cidr(ipset)
-      addr = NetAddr::CIDR.create(ipset)
-      addr.enumerate
+      begin
+        waf.update_ip_set(
+          ip_set_id: ip_set_id,
+          change_token: change_token,
+          updates: ipsets
+        )
+        puts 'Apply Finished.'
+      rescue => ex
+        puts 'Apply Error ' + ex.message
+      end
     end
 
     def generate_delete_hash(ipset)
       ipset.slice!(0)
+      # p ipset
       h = {
         action: 'DELETE',
         ip_set_descriptor: {
@@ -88,20 +92,20 @@ module Wafoo
         }
       }
 
-      unless %w(8 16 24 33).include?(ipset.split('/').last)
-        ips = split_cidr(ipset)
-        ipsets_array = []
-        ips.each do |ip|
-          ipsets_array << {
-                             action: 'DELETE',
-                             ip_set_descriptor: {
-                               type: 'IPV4',
-                               value: ip + '/32'
-                             }
-                          }
-        end
-        return ipsets_array
-      end 
+      # unless %w(8 16 24 33).include?(ipset.split('/').last)
+      #   ips = split_cidr(ipset)
+      #   ipsets_array = []
+      #   ips.each do |ip|
+      #     ipsets_array << {
+      #                        action: 'DELETE',
+      #                        ip_set_descriptor: {
+      #                          type: 'IPV4',
+      #                          value: ip + '/32'
+      #                        }
+      #                     }
+      #   end
+      #   return ipsets_array
+      # end
 
       ipsets_hash = {
                        action: 'DELETE',
@@ -115,20 +119,20 @@ module Wafoo
 
     def generate_insert_hash(ipset)
       ipset.slice!(0)
-      unless %w(8 16 24 33).include?(ipset.split('/').last)
-        ips = split_cidr(ipset)
-        ipsets_array = []
-        ips.each do |ip|
-          ipsets_array << {
-                             action: 'INSERT',
-                             ip_set_descriptor: {
-                               type: 'IPV4',
-                               value: ip + '/32'
-                             }
-                          }
-        end
-        return ipsets_array
-      end
+      # unless %w(8 16 24 33).include?(ipset.split('/').last)
+      #   ips = split_cidr(ipset)
+      #   ipsets_array = []
+      #   ips.each do |ip|
+      #     ipsets_array << {
+      #                        action: 'INSERT',
+      #                        ip_set_descriptor: {
+      #                          type: 'IPV4',
+      #                          value: ip + '/32'
+      #                        }
+      #                     }
+      #   end
+      #   return ipsets_array
+      # end
 
       ipsets_hash = {
                        action: 'INSERT',
@@ -147,17 +151,23 @@ module Wafoo
       Diffy::Diff.new(_old, _new).each do |line|
         case line
           when /^\+/ then
-            puts added_print(line.chomp)
+            puts 'Add Line: ' + added_print(line.chomp)
             ipsets << generate_insert_hash(line.chomp)
           when /^-/ then
-            puts removed_print(line.chomp)
+            puts 'Remove Line: ' + removed_print(line.chomp)
             ipsets << generate_delete_hash(line.chomp)
         end
       end
 
-      if dry_run == nil and ipsets.length > 0 then
+      if !dry_run and ipsets.length > 0 then
         apply_ipsets(ipsets.flatten, ip_set_id)
         export_ipsets(ip_set_id)
+      elsif dry_run and ipsets.length > 0 then
+        puts 'Above IP list will be changed.'
+        exit 0
+      else
+        puts 'No IP list changed.'
+        exit 0
       end
     end
   end
