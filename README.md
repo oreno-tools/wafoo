@@ -1,5 +1,7 @@
 # wafoo [![Build Status](https://travis-ci.org/inokappa/wafoo.svg?branch=master)](https://travis-ci.org/inokappa/wafoo) [![Gem Version](https://badge.fury.io/rb/wafoo.svg)](https://badge.fury.io/rb/wafoo)
 
+![](https://raw.githubusercontent.com/inokappa/wafoo/master/docs/images/teisyoku_haizen.png)
+
 ## これなに
 
 * AWS WAF の IP Sets に登録されている IP リストを操作するツールです
