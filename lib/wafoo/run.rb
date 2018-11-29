@@ -2,12 +2,14 @@ require 'wafoo'
 
 module Wafoo
   class Run
+    IP_SETS_DIR = 'ipsets'
     include Wafoo::Helper
   
     def initialize(options = nil)
       @waf_regional = Aws::WAFRegional::Client.new
       @waf = Aws::WAF::Client.new
       @regional = options[:regional] unless options.nil?
+      FileUtils.mkdir_p(IP_SETS_DIR) unless FileTest.exist?(IP_SETS_DIR)
     end
 
     def read_ipset_from_api(ip_set_id)
@@ -26,7 +28,7 @@ module Wafoo
 
     def read_ipset_from_file(ip_set_id)
       ipsets = []
-      File.open(ip_set_id, 'r') do |file|
+      File.open(IP_SETS_DIR + '/' + ip_set_id, 'r') do |file|
         file.read.split("\n").each do |ipset|
           ipsets << ipset
         end
@@ -64,10 +66,10 @@ module Wafoo
         exit 1
       end
       ipsets.sort.each { |ipset| puts info_print(ipset) }
-      File.open(ip_set_id, 'w') do |f|
+      File.open(IP_SETS_DIR + '/' + ip_set_id, 'w') do |f|
         ipsets.sort.each { |ipset| f.puts(ipset) }
       end
-      puts 'Exported to ' + added_print(ip_set_id)
+      puts 'Exported to ' + added_print(IP_SETS_DIR + '/' + ip_set_id)
     end
 
     def apply_ipset(ipsets, ip_set_id)

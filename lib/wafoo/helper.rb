@@ -1,7 +1,7 @@
 module Wafoo
   module Helper
     def output_table(ipsets_list)
-      table = Terminal::Table.new(:headings => ['Type', 'IPSets ID', 'Name'],
+      table = Terminal::Table.new(:headings => ['Type', 'IPSet IDs', 'Name'],
                                   :rows => ipsets_list)
       puts table
     end
