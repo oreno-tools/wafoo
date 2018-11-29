@@ -10,7 +10,7 @@ module Wafoo
       @regional = options[:regional] unless options.nil?
     end
 
-    def read_ipsets_from_api(ip_set_id)
+    def read_ipset_from_api(ip_set_id)
       waf = @regional ? @waf_regional : @waf
       resp = waf.get_ip_set({
         ip_set_id: ip_set_id
@@ -24,7 +24,7 @@ module Wafoo
       ipsets
     end
 
-    def read_ipsets_from_file(ip_set_id)
+    def read_ipset_from_file(ip_set_id)
       ipsets = []
       File.open(ip_set_id, 'r') do |file|
         file.read.split("\n").each do |ipset|
@@ -55,9 +55,14 @@ module Wafoo
       output_table(ip_sets)
     end
 
-    def export_ipsets(ip_set_id)
-      ipsets = read_ipsets_from_api(ip_set_id)
+    def export_ipset(ip_set_id)
       puts 'Exporting IP List...'
+      begin
+        ipsets = read_ipset_from_api(ip_set_id)
+      rescue => ex
+        puts error_print(ex.message)
+        exit 1
+      end
       ipsets.sort.each { |ipset| puts info_print(ipset) }
       File.open(ip_set_id, 'w') do |f|
         ipsets.sort.each { |ipset| f.puts(ipset) }
@@ -65,7 +70,7 @@ module Wafoo
       puts 'Exported to ' + added_print(ip_set_id)
     end
 
-    def apply_ipsets(ipsets, ip_set_id)
+    def apply_ipset(ipsets, ip_set_id)
       waf = @regional ? @waf_regional : @waf
       puts 'Applying IP List...'
       change_token = waf.get_change_token.change_token
@@ -83,72 +88,50 @@ module Wafoo
       end
     end
 
+    def create_ipset(ip_set_name)
+      waf = @regional ? @waf_regional : @waf
+      puts 'Creating IPSet...'
+      change_token = waf.get_change_token.change_token
+      begin
+        waf.create_ip_set(
+          name: ip_set_name,
+          change_token: change_token,
+        )
+        puts 'Create Finished.'
+        exit 0
+      rescue => ex
+        puts error_print(ex.message)
+        exit 1
+      end
+    end
+
     def generate_delete_hash(ipset)
       ipset.slice!(0)
-      # p ipset
-      h = {
-        action: 'DELETE',
-        ip_set_descriptor: {
-          type: 'IPV4',
-          value: ipset
-        }
-      }
-
-      # unless %w(8 16 24 33).include?(ipset.split('/').last)
-      #   ips = split_cidr(ipset)
-      #   ipsets_array = []
-      #   ips.each do |ip|
-      #     ipsets_array << {
-      #                        action: 'DELETE',
-      #                        ip_set_descriptor: {
-      #                          type: 'IPV4',
-      #                          value: ip + '/32'
-      #                        }
-      #                     }
-      #   end
-      #   return ipsets_array
-      # end
-
-      ipsets_hash = {
+      ipset_hash = {
                        action: 'DELETE',
                        ip_set_descriptor: {
                          type: 'IPV4',
                          value: ipset
                        }
-                    }
-      ipsets_hash
+                   }
+      ipset_hash
     end
 
     def generate_insert_hash(ipset)
       ipset.slice!(0)
-      # unless %w(8 16 24 33).include?(ipset.split('/').last)
-      #   ips = split_cidr(ipset)
-      #   ipsets_array = []
-      #   ips.each do |ip|
-      #     ipsets_array << {
-      #                        action: 'INSERT',
-      #                        ip_set_descriptor: {
-      #                          type: 'IPV4',
-      #                          value: ip + '/32'
-      #                        }
-      #                     }
-      #   end
-      #   return ipsets_array
-      # end
-
-      ipsets_hash = {
+      ipset_hash = {
                        action: 'INSERT',
                        ip_set_descriptor: {
                          type: 'IPV4',
                          value: ipset
                        }
-                    }
-      ipsets_hash
+                   }
+      ipset_hash
     end
 
-    def update_ipsets(ip_set_id, dry_run)
-      _old = read_ipsets_from_api(ip_set_id).join("\n")
-      _new = read_ipsets_from_file(ip_set_id).join("\n")
+    def update_ipset(ip_set_id, dry_run)
+      _old = read_ipset_from_api(ip_set_id).join("\n")
+      _new = read_ipset_from_file(ip_set_id).join("\n")
       ipsets = []
       Diffy::Diff.new(_old, _new).each do |line|
         case line
@@ -162,8 +145,8 @@ module Wafoo
       end
 
       if !dry_run and ipsets.length > 0 then
-        apply_ipsets(ipsets.flatten, ip_set_id)
-        export_ipsets(ip_set_id)
+        apply_ipset(ipsets.flatten, ip_set_id)
+        export_ipset(ip_set_id)
       elsif dry_run and ipsets.length > 0 then
         puts 'Above IP list will be changed.'
         exit 0

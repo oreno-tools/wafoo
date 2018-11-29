@@ -4,7 +4,7 @@
 
 ## これなに
 
-* AWS WAF の IP Sets に登録されている IP リストを操作するツールです
+* AWS WAF の IP Set に登録されている IP リストを操作するツールです
 * ツッコミどころが満載です
 
 ## Install
@@ -44,7 +44,7 @@ export AWS_REGION=ap-northeast-1
 $ bundle exec wafoo list
 ```
 
-### Step 2: Export IPSets details
+### Step 2: Export IPSet details
 
 ```sh
 $ bundle exec wafoo export --ip-set-id=${IPSet ID}
@@ -52,7 +52,7 @@ $ bundle exec wafoo export --ip-set-id=${IPSet ID}
 
 The IP list is exported to the current directory. (The file name is IPSet ID.)
 
-### Step 3: Modify IPSets details
+### Step 3: Modify IPSet details
 
 ```sh
 $ vim ${IPSet ID}
