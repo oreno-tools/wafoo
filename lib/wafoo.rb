@@ -7,6 +7,7 @@ require 'terminal-table'
 
 require 'wafoo/version'
 require 'wafoo/cli'
+require 'wafoo/ext'
 require 'wafoo/helper'
 require 'wafoo/run'
 
