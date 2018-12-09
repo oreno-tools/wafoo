@@ -9,6 +9,7 @@ require 'wafoo/version'
 require 'wafoo/cli'
 require 'wafoo/ext'
 require 'wafoo/helper'
+require 'wafoo/stub'
 require 'wafoo/run'
 
 module Wafoo
