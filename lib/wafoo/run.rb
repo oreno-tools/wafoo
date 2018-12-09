@@ -6,8 +6,13 @@ module Wafoo
     include Wafoo::Helper
   
     def initialize(options = nil)
-      @waf_regional = Aws::WAFRegional::Client.new
+      # Stub は個別にロードしてあげないといけないので苦肉の策
+      Wafoo::Stub.load('waf') if ENV['LOAD_STUB'] == 'true'
       @waf = Aws::WAF::Client.new
+      # Stub は個別にロードしてあげないといけないので苦肉の策
+      Wafoo::Stub.load('wafregional') if ENV['LOAD_STUB'] == 'true'
+      @waf_regional = Aws::WAFRegional::Client.new
+
       @regional = options[:regional] unless options.nil?
       FileUtils.mkdir_p(IP_SETS_DIR) unless FileTest.exist?(IP_SETS_DIR)
     end
@@ -37,23 +42,45 @@ module Wafoo
       ipsets.sort
     end
 
-    def list_ipsets
+    def get_waf_ipsets
       ip_sets = []
       params = {}
-      [ @waf_regional, @waf ].each do |w|
-        loop do
-          res = w.list_ip_sets(params)
-          res.ip_sets.each do |set|
-            ipset = []
-            ipset << w.class.to_s.split('::')[1]
-            ipset << set.ip_set_id
-            ipset << set.name
-            ip_sets << ipset
-          end
-          break if res.next_marker.nil?
-          params[:next_marker] = res.next_marker
+      loop do
+        res = @waf.list_ip_sets(params)
+        res.ip_sets.each do |set|
+          ipset = []
+          ipset << @waf.class.to_s.split('::')[1]
+          ipset << set.ip_set_id
+          ipset << set.name
+          ip_sets << ipset
         end
+        break if res.next_marker.nil?
+        params[:next_marker] = res.next_marker
       end
+      ip_sets
+    end
+
+    def get_wafregional_ipsets
+      ip_sets = []
+      params = {}
+      loop do
+        res = @waf_regional.list_ip_sets(params)
+        res.ip_sets.each do |set|
+          ipset = []
+          ipset << @waf_regional.class.to_s.split('::')[1]
+          ipset << set.ip_set_id
+          ipset << set.name
+          ip_sets << ipset
+        end
+        break if res.next_marker.nil?
+        params[:next_marker] = res.next_marker
+      end
+      ip_sets
+    end
+
+    def list_ipsets
+      ip_sets = []
+      ip_sets = get_waf_ipsets + get_wafregional_ipsets
       output_table(ip_sets)
     end
 
