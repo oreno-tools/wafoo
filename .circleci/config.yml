@@ -26,8 +26,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            bundle exec rspec \
-              --format progress
+            bundle exec rake spec
   spec_2_5:
     docker:
       - image: circleci/ruby:2.5.7
@@ -45,8 +44,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            bundle exec rspec \
-              --format progress
+            bundle exec rake spec
   spec_2_6:
     docker:
       - image: circleci/ruby:2.6.5
@@ -64,8 +62,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            bundle exec rspec \
-              --format progress
+            bundle exec rake spec
 
 workflows:
   spec_all:
