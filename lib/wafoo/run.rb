@@ -9,12 +9,58 @@ module Wafoo
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('waf') if ENV['LOAD_STUB'] == 'true'
       @waf = Aws::WAF::Client.new
+      @waf_webacls = get_waf_webacls
+
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('wafregional') if ENV['LOAD_STUB'] == 'true'
       @waf_regional = Aws::WAFRegional::Client.new
+      @wafregioal_webacls = get_wafregional_webacls
+
+      @all_waf_webacls = @waf_webacls + @wafregioal_webacls
 
       @regional = options[:regional] unless options.nil?
       FileUtils.mkdir_p(IP_SETS_DIR) unless FileTest.exist?(IP_SETS_DIR)
+    end
+
+    %w(waf wafregional).each do |kind|
+      define_method "get_#{kind}_webacls" do
+        webacls = []
+        params = {}
+        waf_client = (kind == 'waf' ? @waf : @waf_regional)
+        loop do
+          res = waf_client.list_web_acls(params)
+          res.web_acls.map(&:to_h).each do |acl|
+            acl[:web_acl_name] = acl[:name]
+            acl.delete(:name)
+            webacls << acl
+          end
+          break if res.next_marker.nil?
+          params[:next_marker] = res.next_marker
+        end
+
+        webacl_ids = webacls.map {|acl| acl[:web_acl_id] }
+        webacl_ids.each do |id|
+          acl = waf_client.get_web_acl({
+            web_acl_id: id,
+          })
+          rules = []
+          acl.web_acl.rules.map(&:to_h).each do |r|
+            rule_desc = waf_client.get_rule({
+              rule_id: r[:rule_id]
+            })
+            ip_sets = rule_desc.rule.predicates.map { |p| p.data_id if p.type == 'IPMatch' }
+            rule = {}
+            rule[:rule_id] = r[:rule_id]
+            rule[:ip_set_ids] = ip_sets
+            rules << rule
+          end
+
+          webacls.map do |_acl|
+            _acl[:web_acl_rules] = rules if id == _acl[:web_acl_id]
+          end
+        end
+        webacls
+      end
     end
 
     def read_ipset_from_api(ip_set_id)
@@ -42,6 +88,28 @@ module Wafoo
       ipsets.sort
     end
 
+    def select_webacl_id(ip_set_id)
+      webacl_ids = []
+      @all_waf_webacls.each do |w|
+        w[:web_acl_rules].each do |r|
+          webacl_ids << w[:web_acl_id] if r[:ip_set_ids].include?(ip_set_id)
+        end
+      end
+      webacl_ids.join('\n') if webacl_ids.length > 1
+      webacl_ids[0]
+    end
+
+    def select_webacl_name(ip_set_id)
+      webacl_names = []
+      @all_waf_webacls.each do |w|
+        w[:web_acl_rules].each do |r|
+          webacl_names << w[:web_acl_name] if r[:ip_set_ids].include?(ip_set_id)
+        end
+      end
+      webacl_names.join('\n') if webacl_names.length > 1
+      webacl_names[0]
+    end
+
     def get_waf_ipsets
       ip_sets = []
       params = {}
@@ -52,6 +120,8 @@ module Wafoo
           ipset << @waf.class.to_s.split('::')[1]
           ipset << set.ip_set_id
           ipset << set.name
+          ipset << select_webacl_id(set.ip_set_id)
+          ipset << select_webacl_name(set.ip_set_id)
           ip_sets << ipset
         end
         break if res.next_marker.nil?
@@ -70,6 +140,8 @@ module Wafoo
           ipset << @waf_regional.class.to_s.split('::')[1]
           ipset << set.ip_set_id
           ipset << set.name
+          ipset << select_webacl_id(set.ip_set_id)
+          ipset << select_webacl_name(set.ip_set_id)
           ip_sets << ipset
         end
         break if res.next_marker.nil?
