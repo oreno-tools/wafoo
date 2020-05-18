@@ -14,7 +14,7 @@ module Wafoo
     end
 
     desc 'list', 'Print IPSet list'
-    option :cloudfront, type: :boolean, desc: 'Specify the option when the target is CloudFront.'
+    option :full, type: :boolean, desc: 'Specify this when you want to display webacl information as well.'
     def list
       wafoo = Wafoo::Run.new(options)
       wafoo.list_ipsets
