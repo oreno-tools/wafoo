@@ -48,7 +48,7 @@ describe 'Wafoo::Run' do
     actual = capture(:stdout) { Wafoo::Run.new.list_ipsets }
     expect = <<"EOS"
 +-------------+----------------------------------------+---------------------+
-| Type        | IPSet IDs                              | Name                |
+| Type        | IPSet ID                               | IPSet Name          |
 +-------------+----------------------------------------+---------------------+
 | WAF         | 1234567-abcd-1234-efgh-5678-1234567890 | waf-my-ip-set1      |
 | WAF         | 2234567-abcd-1234-efgh-5678-1234567890 | waf-my-ip-set2      |
@@ -58,6 +58,23 @@ describe 'Wafoo::Run' do
 | WAFRegional | 3234567-abcd-1234-efgh-5678-1234567890 | regional-my-ip-set3 |
 +-------------+----------------------------------------+---------------------+
 EOS
-    expect(expect).to match(actual)
+    expect(expect).to eq actual
+  end
+
+  it 'check list_ipsets with `--full` option' do
+    actual = capture(:stdout) { Wafoo::Run.new({'full': true}).list_ipsets }
+    expect = <<"EOS"
++-------------+----------------------------------------+---------------------+----------------------+---------------+
+| Type        | IPSet ID                               | IPSet Name          | WebACL ID            | WebACL Name   |
++-------------+----------------------------------------+---------------------+----------------------+---------------+
+| WAF         | 1234567-abcd-1234-efgh-5678-1234567890 | waf-my-ip-set1      | webacl-1472061481310 | WebACLexample |
+| WAF         | 2234567-abcd-1234-efgh-5678-1234567890 | waf-my-ip-set2      |                      |               |
+| WAF         | 3234567-abcd-1234-efgh-5678-1234567890 | waf-my-ip-set3      |                      |               |
+| WAFRegional | 1234567-abcd-1234-efgh-5678-1234567890 | regional-my-ip-set1 | webacl-1472061481310 | WebACLexample |
+| WAFRegional | 2234567-abcd-1234-efgh-5678-1234567890 | regional-my-ip-set2 |                      |               |
+| WAFRegional | 3234567-abcd-1234-efgh-5678-1234567890 | regional-my-ip-set3 |                      |               |
++-------------+----------------------------------------+---------------------+----------------------+---------------+
+EOS
+    expect(expect).to eq actual
   end
 end

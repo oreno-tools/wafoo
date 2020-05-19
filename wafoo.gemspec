@@ -26,12 +26,14 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_development_dependency 'bundler', '~> 1.16'
+  spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'octorelease'
   spec.add_development_dependency 'rake', '>= 12.3.3'
   spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'rspec_junit_formatter'
 
-  spec.add_dependency 'aws-sdk'
+  spec.add_dependency 'aws-sdk-waf'
+  spec.add_dependency 'aws-sdk-wafregional'
   spec.add_dependency 'awsecrets'
   spec.add_dependency 'diffy'
   spec.add_dependency 'netaddr', '>= 2.0.4'

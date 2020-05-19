@@ -9,17 +9,65 @@ module Wafoo
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('waf') if ENV['LOAD_STUB'] == 'true'
       @waf = Aws::WAF::Client.new
+      @waf_webacls = get_waf_webacls
+
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('wafregional') if ENV['LOAD_STUB'] == 'true'
       @waf_regional = Aws::WAFRegional::Client.new
+      @wafregioal_webacls = get_wafregional_webacls
+
+      @all_waf_webacls = @waf_webacls + @wafregioal_webacls
 
       @regional = options[:regional] unless options.nil?
+      @full = options[:full] unless options.nil?
       FileUtils.mkdir_p(IP_SETS_DIR) unless FileTest.exist?(IP_SETS_DIR)
     end
 
+    %w(waf wafregional).each do |kind|
+      define_method "get_#{kind}_webacls" do
+        webacls = []
+        params = {}
+        waf_client = (kind == 'waf' ? @waf : @waf_regional)
+        loop do
+          res = waf_client.list_web_acls(params)
+          res.web_acls.map(&:to_h).each do |acl|
+            acl[:web_acl_name] = acl[:name]
+            acl.delete(:name)
+            webacls << acl
+          end
+          break if res.next_marker.nil?
+          params[:next_marker] = res.next_marker
+        end
+
+        webacl_ids = webacls.map {|acl| acl[:web_acl_id] }
+        webacl_ids.each do |id|
+          acl = waf_client.get_web_acl({
+            web_acl_id: id,
+          })
+
+          rules = []
+          acl.web_acl.rules.map(&:to_h).each do |r|
+            rule_desc = waf_client.get_rule({
+              rule_id: r[:rule_id]
+            })
+            ip_sets = rule_desc.rule.predicates.map { |p| p.data_id if p.type == 'IPMatch' }
+            rule = {}
+            rule[:rule_id] = r[:rule_id]
+            rule[:ip_set_ids] = ip_sets
+            rules << rule
+          end
+
+          webacls.map do |_acl|
+            _acl[:web_acl_rules] = rules if id == _acl[:web_acl_id]
+          end
+        end
+        webacls
+      end
+    end
+
     def read_ipset_from_api(ip_set_id)
-      waf = @regional ? @waf_regional : @waf
-      resp = waf.get_ip_set({
+      waf_client = @regional ? @waf_regional : @waf
+      resp = waf_client.get_ip_set({
         ip_set_id: ip_set_id
       })
       ipsets = []
@@ -42,46 +90,47 @@ module Wafoo
       ipsets.sort
     end
 
-    def get_waf_ipsets
-      ip_sets = []
-      params = {}
-      loop do
-        res = @waf.list_ip_sets(params)
-        res.ip_sets.each do |set|
-          ipset = []
-          ipset << @waf.class.to_s.split('::')[1]
-          ipset << set.ip_set_id
-          ipset << set.name
-          ip_sets << ipset
+    %w(id name).each do |kind|
+      define_method "select_webacl_#{kind}" do |ip_set_id|
+        _kind = (kind == 'name' ? 'web_acl_name' : 'web_acl_id')
+        webacl_res = []
+        @all_waf_webacls.each do |w|
+          w[:web_acl_rules].each do |r|
+            webacl_res << w[_kind.to_sym] if r[:ip_set_ids].include?(ip_set_id)
+          end
         end
-        break if res.next_marker.nil?
-        params[:next_marker] = res.next_marker
+        webacl_res.join('\n') if webacl_res.length > 1
+        webacl_res[0]
       end
-      ip_sets
     end
 
-    def get_wafregional_ipsets
-      ip_sets = []
-      params = {}
-      loop do
-        res = @waf_regional.list_ip_sets(params)
-        res.ip_sets.each do |set|
-          ipset = []
-          ipset << @waf_regional.class.to_s.split('::')[1]
-          ipset << set.ip_set_id
-          ipset << set.name
-          ip_sets << ipset
+    %w(waf wafregional).each do |kind|
+      define_method "get_#{kind}_ipsets" do
+        ip_sets = []
+        params = {}
+        waf_client = (kind == 'waf' ? @waf : @waf_regional)
+        loop do
+          res = waf_client.list_ip_sets(params)
+          res.ip_sets.each do |set|
+            ipset = []
+            ipset << waf_client.class.to_s.split('::')[1]
+            ipset << set.ip_set_id
+            ipset << set.name
+            ipset << select_webacl_id(set.ip_set_id) if @full
+            ipset << select_webacl_name(set.ip_set_id) if @full
+            ip_sets << ipset
+          end
+          break if res.next_marker.nil?
+          params[:next_marker] = res.next_marker
         end
-        break if res.next_marker.nil?
-        params[:next_marker] = res.next_marker
+        ip_sets
       end
-      ip_sets
     end
 
     def list_ipsets
       ip_sets = []
       ip_sets = get_waf_ipsets + get_wafregional_ipsets
-      output_table(ip_sets)
+      output_table(ip_sets, @full)
     end
 
     def export_ipset(ip_set_id)

@@ -1,5 +1,6 @@
 require 'thor'
-require 'aws-sdk'
+require 'aws-sdk-waf'
+require 'aws-sdk-wafregional'
 require 'awsecrets'
 require 'diffy'
 require 'netaddr'

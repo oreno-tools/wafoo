@@ -2,8 +2,9 @@ require 'rspec'
 require 'wafoo'
 
 Aws.config.update(stub_responses: true)
-ENV['AWS_PROFILE'] = 'dummy_profile'
 ENV['AWS_REGION'] = 'us-east-1'
+ENV['AWS_ACCESS_KEY_ID'] = 'XXXXXXXXXXXXXXXXXXXX'
+ENV['AWS_SECRET_ACCESS_KEY'] = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 ENV['LOAD_STUB'] = 'true'
 
 def capture(stream)

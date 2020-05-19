@@ -1,8 +1,9 @@
 module Wafoo
   module Helper
-    def output_table(ipsets_list)
-      table = Terminal::Table.new(:headings => ['Type', 'IPSet IDs', 'Name'],
-                                  :rows => ipsets_list)
+    def output_table(ipsets_list, full)
+      header = ['Type', 'IPSet ID', 'IPSet Name']
+      header.concat(['WebACL ID', 'WebACL Name']) if full
+      table = Terminal::Table.new(:headings => header, :rows => ipsets_list)
       puts table
     end
 
