@@ -2,7 +2,7 @@ require 'wafoo'
 
 module Wafoo
   class CLI < Thor
-    Awsecrets.load
+    # Awsecrets.load
 
     default_command :version
     class_option :profile

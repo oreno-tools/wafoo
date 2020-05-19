@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'aws-sdk-waf'
   spec.add_dependency 'aws-sdk-wafregional'
-  spec.add_dependency 'awsecrets'
+  # spec.add_dependency 'awsecrets'
   spec.add_dependency 'diffy'
   spec.add_dependency 'netaddr', '>= 2.0.4'
   spec.add_dependency 'terminal-table'
