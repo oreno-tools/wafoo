@@ -9,17 +9,17 @@ module Wafoo
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('waf') if ENV['LOAD_STUB'] == 'true'
       @waf = Aws::WAF::Client.new
-      @waf_webacls = get_waf_webacls
 
       # Stub は個別にロードしてあげないといけないので苦肉の策
       Wafoo::Stub.load('wafregional') if ENV['LOAD_STUB'] == 'true'
       @waf_regional = Aws::WAFRegional::Client.new
-      @wafregioal_webacls = get_wafregional_webacls
 
-      @all_waf_webacls = @waf_webacls + @wafregioal_webacls
+      @full = options[:full] unless options.nil?
+      @waf_webacls = get_waf_webacls if @full
+      @wafregioal_webacls = get_wafregional_webacls if @full
+      @all_waf_webacls = @waf_webacls + @wafregioal_webacls if @full
 
       @regional = options[:regional] unless options.nil?
-      @full = options[:full] unless options.nil?
       FileUtils.mkdir_p(IP_SETS_DIR) unless FileTest.exist?(IP_SETS_DIR)
     end
 
